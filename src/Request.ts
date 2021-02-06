@@ -18,11 +18,6 @@ export default class Request {
         this.config = {
             autoRequestCsrfCookie: true,
             csrfCookieUrl: '/sanctum/csrf-cookie',
-            errorCallbacks: {
-                401: (error) => {
-                    console.log(error);
-                },
-            },
             ...config,
         };
         this.service = axios;
