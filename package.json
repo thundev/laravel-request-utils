@@ -1,6 +1,6 @@
 {
   "name": "laravel-request-utils",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Form and Request classes that help working Laravel backend.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,14 +12,18 @@
     "build": "tsc",
     "lint": "eslint .",
     "prepare": "npm run build",
-    "prepublishOnly" : "npm test && npm run lint",
-    "preversion" : "npm run lint"
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/thundev/laravel-form.git"
   },
-  "keywords": ["laravel", "form", "request"],
+  "keywords": [
+    "laravel",
+    "form",
+    "request"
+  ],
   "author": "Alexander Gromov",
   "license": "MIT",
   "bugs": {
