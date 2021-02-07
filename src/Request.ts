@@ -3,10 +3,15 @@ import axios, {
     AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse,
 } from 'axios';
 
-interface RequestConfig {
+export interface ErrorCallback {
+    errorCode: number,
+    callback: { (error: AxiosError): void }
+}
+
+export interface RequestConfig {
     autoRequestCsrfCookie?: boolean,
     csrfCookieUrl?: string,
-    errorCallbacks?: { [key: number]: { (error: AxiosError): void } },
+    errorCallbacks?: ErrorCallback[],
 }
 
 export default class Request {
@@ -18,6 +23,7 @@ export default class Request {
         this.config = {
             autoRequestCsrfCookie: true,
             csrfCookieUrl: '/sanctum/csrf-cookie',
+            errorCallbacks: [],
             ...config,
         };
         this.service = axios;
@@ -32,21 +38,15 @@ export default class Request {
                 // in that case if the config autoRequestCsrfCookie is set to 'true',
                 // we try to receive new token and retry the request.
                 if (error.response.status === 419) {
-                    if (this.config.autoRequestCsrfCookie && typeof config.csrfCookieUrl === 'string') {
-                        return this.get(config.csrfCookieUrl)
+                    if (this.config.autoRequestCsrfCookie && typeof this.config.csrfCookieUrl === 'string') {
+                        return this.get(this.config.csrfCookieUrl)
                             .then(() => this.service.request(error.config));
                     }
                 }
 
-                if (typeof config.errorCallbacks !== 'undefined') {
-                    Object.keys(config.errorCallbacks).forEach((key) => {
-                        const errorCode = Number.parseInt(key, 10);
-                        if (error.response.status === errorCode) {
-                            // @ts-ignore
-                            config.errorCallbacks[errorCode](error);
-                        }
-                    });
-                }
+                this.config.errorCallbacks
+                    ?.find((callback) => callback.errorCode === error.response.status)
+                    ?.callback(error);
 
                 return Promise.reject(error);
             },

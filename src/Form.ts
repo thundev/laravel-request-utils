@@ -1,7 +1,7 @@
 import isObject from 'lodash.isobject/index';
-// import { AxiosError, AxiosResponse } from 'axios';
+import { AxiosError, AxiosResponse } from 'axios';
 import Errors from './Errors';
-// import Request from './Request';
+import Request from './Request';
 
 export enum FormMethods {
     POST = 'post',
@@ -9,31 +9,32 @@ export enum FormMethods {
     PUT = 'put',
 }
 
-interface FormConfig {
+export interface FormConfig {
     resetAfterSend?: boolean,
     removeNullValues?: boolean,
-    method?: FormMethods
+    method?: FormMethods,
+    request?: Request,
 }
 
-interface Data {
+export interface FormData {
     [key: string]: any
 }
 
 export default class Form {
-    data: Data;
+    data: FormData;
 
-    originalData: Data;
+    originalData: FormData;
 
     config: FormConfig;
 
     errors: Errors;
 
-    // request: Request;
+    request: Request;
 
     /**
      * Create a new Form instance.
      */
-    constructor(data: Data, config: FormConfig = {}) {
+    constructor(data: FormData, config: FormConfig = {}) {
         this.config = {
             resetAfterSend: true,
             removeNullValues: true,
@@ -43,13 +44,11 @@ export default class Form {
         this.data = data;
         this.originalData = { ...data };
         this.errors = new Errors();
+        this.request = this.config.request ?? new Request();
 
         if (this.config.method !== FormMethods.POST) {
             this.addField('_method', this.config.method);
         }
-
-        // @ts-ignore
-        // this.request = Request;
 
         Object.preventExtensions(this);
 
@@ -119,32 +118,32 @@ export default class Form {
     serialize() {
         const json: { [key: string]: any } = {};
 
-        Object.keys(this.originalData).forEach((field) => {
+        Object.keys(this.data).forEach((field) => {
             json[field] = this.data[field];
         });
 
-        return json;
+        return JSON.stringify(json);
     }
 
-    // submit(url: string, clear: boolean = true) {
-    //     this.errors.clear();
-    //     const data = this.getFormData();
-    //
-    //     return new Promise((resolve, reject) => {
-    //         // @ts-ignore
-    //         this.request.post(url, data, { 'Content-Type': 'multipart/form-data' })
-    //             .then((response: AxiosResponse) => {
-    //                 if (clear) {
-    //                     this.reset();
-    //                 }
-    //                 return resolve(response.data);
-    //             })
-    //             .catch((error: AxiosError) => {
-    //                 if (typeof error.response?.data.errors !== 'undefined') {
-    //                     this.errors.record(error.response.data.errors);
-    //                 }
-    //                 return reject(error.response?.data);
-    //             });
-    //     });
-    // }
+    submit(url: string) {
+        this.errors.clear();
+        const data = this.getFormData();
+        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+
+        return new Promise((resolve, reject) => {
+            this.request.post(url, data, config)
+                .then((response: AxiosResponse) => {
+                    if (this.config.resetAfterSend) {
+                        this.reset();
+                    }
+                    return resolve(response.data);
+                })
+                .catch((error: AxiosError) => {
+                    if (typeof error.response?.data.errors !== 'undefined') {
+                        this.errors.record(error.response.data.errors);
+                    }
+                    return reject(error.response?.data);
+                });
+        });
+    }
 }
