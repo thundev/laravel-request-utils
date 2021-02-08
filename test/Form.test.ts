@@ -1,5 +1,17 @@
 import Form, { FormMethods } from '../src/Form';
 
+test('this adds data properties', () => {
+    const data = { x: 'test', y: 'test 2' };
+    const form = new Form(data);
+    expect(form).toEqual(expect.objectContaining(data));
+});
+
+test('this can add fields', () => {
+    const form = new Form({ x: 'test' });
+    form.addField('test', 'test');
+    expect(form.test).toBe('test');
+});
+
 describe.each([
     [true, false, 'removes'],
     [false, true, 'keeps'],
@@ -23,14 +35,13 @@ describe.each([
         expect(formData.has('_method')).toBe(hasField);
         if (hasField) {
             // eslint-disable-next-line no-underscore-dangle
-            expect(form.data._method).toBe(method);
+            expect(form._method).toBe(method);
         }
     });
 });
 
-test('this can add fields', () => {
-    const form = new Form({ x: 'test' });
-    form.addField('test', 'test');
-    expect(form.data.test).toBe('test');
-    expect(form.originalData.test).toBe('test');
+test('this can serialize data to json', () => {
+    const form = new Form({ x: 'test1', y: 'test2' });
+    const json = form.serialize();
+    expect(json).toEqual('{"x":"test1","y":"test2"}');
 });

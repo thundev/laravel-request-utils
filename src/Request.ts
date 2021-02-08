@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import axios, {
     AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse,
 } from 'axios';
@@ -15,33 +14,54 @@ export interface RequestConfig {
 }
 
 export default class Request {
-    service: AxiosInstance;
+    private service: AxiosInstance;
 
-    config: RequestConfig;
+    private config: RequestConfig;
 
-    constructor(config: RequestConfig = {}) {
-        this.config = {
-            autoRequestCsrfCookie: true,
-            csrfCookieUrl: '/sanctum/csrf-cookie',
-            errorCallbacks: [],
+    private static instance: Request;
+
+    private static instanceConfig: RequestConfig = {
+        autoRequestCsrfCookie: true,
+        csrfCookieUrl: '/sanctum/csrf-cookie',
+        errorCallbacks: [],
+    };
+
+    public static getInstance(): Request {
+        if (typeof this.instance !== 'undefined') {
+            return this.instance;
+        }
+
+        this.instance = new Request(this.instanceConfig);
+        return this.instance;
+    }
+
+    public static setConfig(config: RequestConfig): void {
+        this.instanceConfig = {
+            ...this.instanceConfig,
             ...config,
         };
+    }
+
+    private constructor(config: RequestConfig = {}) {
         this.service = axios;
+        this.config = config;
 
         this.service.defaults.withCredentials = true;
         this.service.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
         this.service.interceptors.response.use(
-            (response) => response,
+            (response) => Promise.resolve(response),
             (error) => {
                 // 419 error means that the CSRF token has timed out
                 // in that case if the config autoRequestCsrfCookie is set to 'true',
                 // we try to receive new token and retry the request.
-                if (error.response.status === 419) {
-                    if (this.config.autoRequestCsrfCookie && typeof this.config.csrfCookieUrl === 'string') {
-                        return this.get(this.config.csrfCookieUrl)
-                            .then(() => this.service.request(error.config));
-                    }
+                if (
+                    error.response.status === 419
+                        && this.config.autoRequestCsrfCookie
+                        && typeof this.config.csrfCookieUrl !== 'undefined'
+                ) {
+                    this.get(this.config.csrfCookieUrl)
+                        .then(() => this.service.request(error.config));
                 }
 
                 this.config.errorCallbacks
@@ -53,23 +73,28 @@ export default class Request {
         );
     }
 
-    get<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+    // eslint-disable-next-line max-len
+    public get<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
         return this.service.get(url, config);
     }
 
-    post<T = any, R = AxiosResponse<T>>(url: string, data?: any, config?: AxiosRequestConfig): Promise<R> {
+    // eslint-disable-next-line max-len
+    public post<T = any, R = AxiosResponse<T>>(url: string, data?: any, config?: AxiosRequestConfig): Promise<R> {
         return this.service.post(url, data, config);
     }
 
-    patch<T = any, R = AxiosResponse<T>>(url: string, data?: any, config?: AxiosRequestConfig): Promise<R> {
+    // eslint-disable-next-line max-len
+    public patch<T = any, R = AxiosResponse<T>>(url: string, data?: any, config?: AxiosRequestConfig): Promise<R> {
         return this.service.patch(url, data, config);
     }
 
-    put<T = any, R = AxiosResponse<T>>(url: string, data?: any, config?: AxiosRequestConfig): Promise<R> {
+    // eslint-disable-next-line max-len
+    public put<T = any, R = AxiosResponse<T>>(url: string, data?: any, config?: AxiosRequestConfig): Promise<R> {
         return this.service.put(url, data, config);
     }
 
-    delete<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
+    // eslint-disable-next-line max-len
+    public delete<T = any, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
         return this.service.delete(url, config);
     }
 }
