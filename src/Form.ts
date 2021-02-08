@@ -21,15 +21,15 @@ export interface FormData {
 }
 
 export default class Form {
-    data: FormData;
+    [key: string]: any;
 
-    originalData: FormData;
+    private readonly originalData: FormData;
 
-    config: FormConfig;
+    private readonly config: FormConfig;
 
-    errors: Errors;
+    private errors: Errors;
 
-    request: Request;
+    private request: Request;
 
     /**
      * Create a new Form instance.
@@ -41,48 +41,74 @@ export default class Form {
             method: FormMethods.POST,
             ...config,
         };
-        this.data = data;
+
+        Object.keys(data).forEach((key) => {
+            this[key] = data[key];
+        });
+
         this.originalData = { ...data };
         this.errors = new Errors();
-        this.request = this.config.request ?? new Request();
+        this.request = this.config.request ?? Request.getInstance();
 
         if (this.config.method !== FormMethods.POST) {
             this.addField('_method', this.config.method);
         }
-
-        Object.preventExtensions(this);
-
-        return new Proxy(this, {
-            set(target, name, value): boolean {
-                const propertyKey = String(name);
-
-                if (Object.keys(target.data).includes(propertyKey)) {
-                    // eslint-disable-next-line no-param-reassign
-                    target.data[propertyKey] = value;
-                    return true;
-                }
-
-                throw new Error(`Form data does not have '${propertyKey}' field. Add the field first.`);
-            },
-        });
     }
 
     /**
      * Add a new field with value to the form.
      */
-    addField(field: string, value: any): void {
+    public addField(field: string, value: any): void {
         this.originalData[field] = value;
-        this.data[field] = value;
+        this[field] = value;
     }
 
     /**
      * Get FormData object.
      */
-    getFormData(): FormData {
+    public serialize(): string {
+        const json: { [key: string]: any } = {};
+
+        Object.keys(this.originalData).forEach((field) => {
+            json[field] = this[field];
+        });
+
+        return JSON.stringify(json);
+    }
+
+    /**
+     * Submit the form.
+     */
+    public submit(url: string): Promise<any> {
+        this.errors.clear();
+        const data = this.getFormData();
+        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+
+        return new Promise((resolve, reject) => {
+            this.request.post(url, data, config)
+                .then((response: AxiosResponse) => {
+                    if (this.config.resetAfterSend) {
+                        this.reset();
+                    }
+                    return resolve(response.data);
+                })
+                .catch((error: AxiosError) => {
+                    if (typeof error.response?.data.errors !== 'undefined') {
+                        this.errors.record(error.response.data.errors);
+                    }
+                    return reject(error.response?.data);
+                });
+        });
+    }
+
+    /**
+     * Get FormData object.
+     */
+    public getFormData(): FormData {
         const formData = new FormData();
 
-        Object.keys(this.data).forEach((field) => {
-            const value = this.data[field];
+        Object.keys(this.originalData).forEach((field) => {
+            const value = this[field];
 
             if (value === null && this.config.removeNullValues) {
                 return;
@@ -107,43 +133,14 @@ export default class Form {
         return formData;
     }
 
-    reset() {
+    /**
+     * Reset the state of the form to the original state and clears errors.
+     */
+    private reset(): void {
         Object.keys(this.originalData).forEach((field) => {
-            this.data[field] = this.originalData[field];
+            this[field] = this.originalData[field];
         });
 
         this.errors.clear();
-    }
-
-    serialize() {
-        const json: { [key: string]: any } = {};
-
-        Object.keys(this.data).forEach((field) => {
-            json[field] = this.data[field];
-        });
-
-        return JSON.stringify(json);
-    }
-
-    submit(url: string) {
-        this.errors.clear();
-        const data = this.getFormData();
-        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
-
-        return new Promise((resolve, reject) => {
-            this.request.post(url, data, config)
-                .then((response: AxiosResponse) => {
-                    if (this.config.resetAfterSend) {
-                        this.reset();
-                    }
-                    return resolve(response.data);
-                })
-                .catch((error: AxiosError) => {
-                    if (typeof error.response?.data.errors !== 'undefined') {
-                        this.errors.record(error.response.data.errors);
-                    }
-                    return reject(error.response?.data);
-                });
-        });
     }
 }
