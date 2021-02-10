@@ -1,6 +1,6 @@
 {
   "name": "laravel-request-utils",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Form and Request classes that help working Laravel backend.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

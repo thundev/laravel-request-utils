@@ -43,30 +43,35 @@ export default class Request {
     }
 
     private constructor(config: RequestConfig = {}) {
-        this.service = axios;
+        this.service = axios.create();
         this.config = config;
 
         this.service.defaults.withCredentials = true;
         this.service.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
         this.service.interceptors.response.use(
-            (response) => Promise.resolve(response),
-            (error) => {
+            (response: AxiosResponse) => response,
+            (error: AxiosError) => {
                 // 419 error means that the CSRF token has timed out
                 // in that case if the config autoRequestCsrfCookie is set to 'true',
                 // we try to receive new token and retry the request.
-                if (
-                    error.response.status === 419
+                if (error.response) {
+                    const responseStatusCode = error.response.status;
+                    if (
+                        responseStatusCode === 419
                         && this.config.autoRequestCsrfCookie
                         && typeof this.config.csrfCookieUrl !== 'undefined'
-                ) {
-                    this.get(this.config.csrfCookieUrl)
-                        .then(() => this.service.request(error.config));
-                }
+                    ) {
+                        this.get(this.config.csrfCookieUrl)
+                            .then(() => {
+                                this.service.request(error.config);
+                            });
+                    }
 
-                this.config.errorCallbacks
-                    ?.find((callback) => callback.errorCode === error.response.status)
-                    ?.callback(error);
+                    this.config.errorCallbacks
+                        ?.find((callback) => callback.errorCode === responseStatusCode)
+                        ?.callback(error);
+                }
 
                 return Promise.reject(error);
             },
