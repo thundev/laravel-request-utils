@@ -3,7 +3,7 @@ import axios, {
 } from 'axios';
 
 export interface ErrorCallback {
-    errorCode: number,
+    errorCode: number|number[],
     callback: { (error: AxiosError): void }
 }
 
@@ -27,19 +27,23 @@ export default class Request {
     };
 
     public static getInstance(): Request {
-        if (typeof this.instance !== 'undefined') {
-            return this.instance;
+        if (!Request.instance) {
+            Request.instance = new Request(Request.instanceConfig);
         }
 
-        this.instance = new Request(this.instanceConfig);
-        return this.instance;
+        return Request.instance;
     }
 
     public static setConfig(config: RequestConfig): void {
-        this.instanceConfig = {
-            ...this.instanceConfig,
-            ...config,
-        };
+        Object.keys(config).forEach((key: string) => {
+            if (
+                Object.prototype.hasOwnProperty.call(Request.instanceConfig, key)
+                && Object.prototype.hasOwnProperty.call(config, key)
+            ) {
+                // @ts-ignore
+                Request.instanceConfig[key] = config[key];
+            }
+        });
     }
 
     private constructor(config: RequestConfig = {}) {
@@ -69,13 +73,24 @@ export default class Request {
                     }
 
                     this.config.errorCallbacks
-                        ?.find((callback) => callback.errorCode === responseStatusCode)
+                        ?.find((callback) => {
+                            let callbackErrorCode = callback.errorCode;
+                            if (!Array.isArray(callbackErrorCode)) {
+                                callbackErrorCode = [callbackErrorCode];
+                            }
+
+                            return callbackErrorCode.includes(responseStatusCode);
+                        })
                         ?.callback(error);
                 }
 
                 return Promise.reject(error);
             },
         );
+    }
+
+    public getConfig(): RequestConfig {
+        return this.config;
     }
 
     // eslint-disable-next-line max-len
