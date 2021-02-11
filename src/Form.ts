@@ -27,7 +27,7 @@ export default class Form {
 
     private readonly config: FormConfig;
 
-    private errors: Errors;
+    public errors: Errors;
 
     private request: Request;
 
