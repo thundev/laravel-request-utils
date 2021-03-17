@@ -16,14 +16,14 @@ export interface FormConfig {
     request?: Request,
 }
 
-export interface FormData {
+export interface FormProperties {
     [key: string]: any
 }
 
 export default class Form {
     [key: string]: any;
 
-    private readonly originalData: FormData;
+    private readonly originalData: FormProperties;
 
     private readonly config: FormConfig;
 
@@ -34,7 +34,7 @@ export default class Form {
     /**
      * Create a new Form instance.
      */
-    constructor(data: FormData, config: FormConfig = {}) {
+    constructor(data: FormProperties, config: FormConfig = {}) {
         this.config = {
             resetAfterSend: true,
             removeNullValues: true,
@@ -64,7 +64,7 @@ export default class Form {
     }
 
     /**
-     * Get FormData object.
+     * Serialize the Form.
      */
     public serialize(asString: boolean = true): string|object {
         const json: { [key: string]: any } = {};
@@ -114,20 +114,30 @@ export default class Form {
                 return;
             }
 
+            if (
+                typeof value === 'string'
+                && value.length === 0
+                && this.config.removeNullValues
+            ) {
+                return;
+            }
+
             if (typeof value === 'boolean') {
                 formData.append(field, Number(value).toString());
-            } else if (Array.isArray(value)) {
-                value.forEach((item) => {
-                    formData.append(`${field}[]`, item);
-                });
-            } else if (isObject(value) && !(value instanceof File)) {
-                Object.keys(value).forEach((key) => {
-                    // @ts-ignore
-                    formData.append(`${field}[${key}]`, value[key]);
-                });
-            } else {
-                formData.append(field, value);
+                return;
             }
+
+            if (Array.isArray(value)) {
+                this.addArray(field, value, formData);
+                return;
+            }
+
+            if (isObject(value) && !(value instanceof File)) {
+                this.addObject(field, value, formData);
+                return;
+            }
+
+            formData.append(field, value);
         });
 
         return formData;
@@ -142,5 +152,27 @@ export default class Form {
         });
 
         this.errors.clear();
+    }
+
+    private addArray(field: string, array: any[], formData: FormData) {
+        if (array.length === 0 && this.config.removeNullValues) {
+            return;
+        }
+
+        array.forEach((item) => {
+            formData.append(`${field}[]`, item);
+        });
+    }
+
+    private addObject(field: string, object: { [key: string]: any }, formData: FormData) {
+        const keys = Object.keys(object);
+
+        if (keys.length === 0 && this.config.removeNullValues) {
+            return;
+        }
+
+        keys.forEach((key) => {
+            formData.append(`${field}[${key}]`, object[key]);
+        });
     }
 }

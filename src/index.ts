@@ -1,10 +1,10 @@
-import Form, { FormMethods, FormData, FormConfig } from './Form';
+import Form, { FormMethods, FormProperties, FormConfig } from './Form';
 import Request, { RequestConfig, ErrorCallback } from './Request';
 
 export {
     Form,
     FormMethods,
-    FormData,
+    FormProperties,
     FormConfig,
     Request,
     RequestConfig,
