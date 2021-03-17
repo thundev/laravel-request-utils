@@ -66,14 +66,14 @@ export default class Form {
     /**
      * Get FormData object.
      */
-    public serialize(): string {
+    public serialize(asString: boolean = true): string|object {
         const json: { [key: string]: any } = {};
 
-        Object.keys(this.originalData).forEach((field) => {
+        Object.keys(this.originalData).forEach((field: string) => {
             json[field] = this[field];
         });
 
-        return JSON.stringify(json);
+        return asString ? JSON.stringify(json) : json;
     }
 
     /**
