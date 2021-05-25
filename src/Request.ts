@@ -7,16 +7,21 @@ export interface ErrorCallback {
     callback: { (error: AxiosError): void }
 }
 
+export interface SuccessCallback {
+    (response: AxiosResponse): void
+}
+
 export interface RequestConfig {
     autoRequestCsrfCookie?: boolean,
     csrfCookieUrl?: string,
     errorCallbacks?: ErrorCallback[],
+    successCallbacks?: SuccessCallback[],
 }
 
 export default class Request {
     private service: AxiosInstance;
 
-    private config: RequestConfig;
+    private readonly config: RequestConfig;
 
     private static instance: Request;
 
@@ -24,6 +29,7 @@ export default class Request {
         autoRequestCsrfCookie: true,
         csrfCookieUrl: '/sanctum/csrf-cookie',
         errorCallbacks: [],
+        successCallbacks: [],
     };
 
     public static getInstance(): Request {
@@ -54,7 +60,14 @@ export default class Request {
         this.service.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
         this.service.interceptors.response.use(
-            (response: AxiosResponse) => response,
+            (response: AxiosResponse) => {
+                this.config.successCallbacks
+                    ?.forEach((callback) => {
+                        callback(response);
+                    });
+
+                return response;
+            },
             (error: AxiosError) => {
                 // 419 error means that the CSRF token has timed out
                 // in that case if the config autoRequestCsrfCookie is set to 'true',
