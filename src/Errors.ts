@@ -56,7 +56,11 @@ export default class Errors {
      */
     clear(field: string|null = null): void {
         if (field) {
-            delete this.errors[field];
+            Object.keys(this.errors).forEach((key: string) => {
+                if (key.match(field)) {
+                    delete this.errors[key];
+                }
+            });
 
             return;
         }
