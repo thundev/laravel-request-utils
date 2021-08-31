@@ -15,8 +15,12 @@ export default class Errors {
     /**
      * Determine if an errors exists for the given field.
      */
-    has(field: string): boolean {
-        return typeof this.errors[field] !== 'undefined';
+    has(field: string, strict: boolean = true): boolean {
+        if (strict) {
+            return typeof this.errors[field] !== 'undefined';
+        }
+
+        return Object.keys(this.errors).some((key) => !!key.match(field));
     }
 
     /**
