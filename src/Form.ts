@@ -103,7 +103,6 @@ export default class Form {
     }
 
     public validate(url: string | null): Promise<any> {
-        this.errors.clear();
         const data = this.getFormData();
         data.append('validate', '1');
         this.getTouchedFields().forEach((field: string) => {
