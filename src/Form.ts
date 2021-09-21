@@ -14,6 +14,7 @@ export interface FormConfig {
     removeNullValues?: boolean,
     method?: FormMethods,
     request?: Request,
+    url?: string | null,
 }
 
 export interface FormProperties {
@@ -31,6 +32,8 @@ export default class Form {
 
     private request: Request;
 
+    private touchedFields: { [key: string]: any } = {};
+
     /**
      * Create a new Form instance.
      */
@@ -38,6 +41,7 @@ export default class Form {
         this.config = {
             resetAfterSend: true,
             removeNullValues: true,
+            url: null,
             method: FormMethods.POST,
             ...config,
         };
@@ -63,6 +67,19 @@ export default class Form {
         this[field] = value;
     }
 
+    public setUrl(url: string): Form {
+        this.config.url = url;
+        return this;
+    }
+
+    public addTouchedField(field: string) {
+        this.touchedFields[field] = field;
+    }
+
+    public getTouchedFields(): Array<string> {
+        return Object.values(this.touchedFields);
+    }
+
     /**
      * Serialize the Form.
      */
@@ -79,26 +96,21 @@ export default class Form {
     /**
      * Submit the form.
      */
-    public submit(url: string): Promise<any> {
+    public submit(url: string | null): Promise<any> {
         this.errors.clear();
         const data = this.getFormData();
-        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+        return this.send(this.getUrl(url), data);
+    }
 
-        return new Promise((resolve, reject) => {
-            this.request.post(url, data, config)
-                .then((response: AxiosResponse) => {
-                    if (this.config.resetAfterSend) {
-                        this.reset();
-                    }
-                    return resolve(response.data);
-                })
-                .catch((error: AxiosError) => {
-                    if (typeof error.response?.data.errors !== 'undefined') {
-                        this.errors.record(error.response.data.errors);
-                    }
-                    return reject(error.response?.data);
-                });
+    public validate(url: string | null): Promise<any> {
+        this.errors.clear();
+        const data = this.getFormData();
+        data.append('validate', '1');
+        this.getTouchedFields().forEach((field: string) => {
+            data.append('fields[]', field);
         });
+
+        return this.send(this.getUrl(url), data, true);
     }
 
     /**
@@ -173,6 +185,37 @@ export default class Form {
 
         keys.forEach((key) => {
             formData.append(`${field}[${key}]`, object[key]);
+        });
+    }
+
+    private getUrl(url: string | null): string {
+        if (url) {
+            return url;
+        }
+        if (this.config.url) {
+            return this.config.url;
+        }
+
+        throw new Error('Please specify url.');
+    }
+
+    private send(url: string, data: FormData, shouldValidate: boolean = false): Promise<any> {
+        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+
+        return new Promise((resolve, reject) => {
+            this.request.post(url, data, config)
+                .then((response: AxiosResponse) => {
+                    if (this.config.resetAfterSend && !shouldValidate) {
+                        this.reset();
+                    }
+                    return resolve(response.data);
+                })
+                .catch((error: AxiosError) => {
+                    if (typeof error.response?.data.errors !== 'undefined') {
+                        this.errors.record(error.response.data.errors);
+                    }
+                    return reject(error.response?.data);
+                });
         });
     }
 }

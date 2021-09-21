@@ -45,3 +45,12 @@ test('this can serialize data to json', () => {
     const json = form.serialize();
     expect(json).toEqual('{"x":"test1","y":"test2"}');
 });
+
+test('this can add touched fields', () => {
+    const form = new Form({ x: 'test1', y: 'test2' });
+    form.addTouchedField('name');
+    form.addTouchedField('phone');
+    expect(form.getTouchedFields().length).toBe(2);
+    expect(form.getTouchedFields()[0]).toBe('name');
+    expect(form.getTouchedFields()[1]).toBe('phone');
+});
