@@ -155,14 +155,12 @@ export default class Form {
     }
 
     /**
-     * Reset the state of the form to the original state and clears errors.
+     * Reset the state of the form to the original state.
      */
     private reset(): void {
         Object.keys(this.originalData).forEach((field) => {
             this[field] = this.originalData[field];
         });
-
-        this.errors.clear();
     }
 
     private addArray(field: string, array: any[], formData: FormData) {
@@ -207,6 +205,7 @@ export default class Form {
                     if (this.config.resetAfterSend && !shouldValidate) {
                         this.reset();
                     }
+                    this.errors.clear();
                     return resolve(response.data);
                 })
                 .catch((error: AxiosError) => {
