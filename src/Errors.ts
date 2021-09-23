@@ -48,11 +48,7 @@ export default class Errors {
      * Record the new errors.
      */
     record(errors: { [key: string]: string[] }): void {
-        this.clear();
-
-        Object.keys(errors).forEach((field) => {
-            this.errors[field] = errors[field];
-        });
+        this.errors = { ...errors };
     }
 
     /**
