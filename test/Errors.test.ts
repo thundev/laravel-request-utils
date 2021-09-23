@@ -18,6 +18,7 @@ test('this record errors', () => {
     delete errorMessages.thanks_page;
 
     errors.record(errorMessages);
+    expect(errors.has('thanks_page')).toBeFalsy();
     Object.keys(errorMessages).forEach((key) => {
         expect(errors.has(key)).toBeTruthy();
         expect(errors.get(key)).toBe(errorMessages[key][0]);
