@@ -1,15 +1,20 @@
 import Errors from '../src/Errors';
 
-test('this record errors', () => {
-    const errorMessages: { [key: string]: string[] } = {
+let errors: Errors = new Errors();
+let errorMessages: { [key: string]: string[] } = {};
+
+beforeEach(() => {
+    errorMessages = {
         domain: ['The domain format is invalid.'],
         thanks_page: ['The thanks page format is invalid.'],
         webhook: ['The webhook format is invalid.'],
     };
 
-    const errors = new Errors();
-
+    errors = new Errors();
     errors.record(errorMessages);
+});
+
+test('this records errors', () => {
     Object.keys(errorMessages).forEach((key) => {
         expect(errors.has(key)).toBeTruthy();
         expect(errors.get(key)).toBe(errorMessages[key][0]);
@@ -24,45 +29,26 @@ test('this record errors', () => {
         expect(errors.get(key)).toBe(errorMessages[key][0]);
     });
 });
-test('this have any error', () => {
-    const errors = new Errors();
 
-    errors.record({
-        domain: ['The domain format is invalid.'],
-        thanks_page: ['The thanks page format is invalid.'],
-        webhook: ['The webhook format is invalid.'],
-    });
-
+test('this can check for any errors recorded', () => {
     expect(errors.any()).toBeTruthy();
+
+    errors.clear();
+    expect(errors.any()).toBeFalsy();
 });
 
-test('this get all errors', () => {
-    const errorMessages: { [key: string]: string[] } = {
-        domain: ['The domain format is invalid.'],
-        thanks_page: ['The thanks page format is invalid.'],
-        webhook: ['The webhook format is invalid.'],
-    };
-    const errors = new Errors();
-
-    errors.record(errorMessages);
+test('this gets all errors as array of strings', () => {
     expect(errors.getAll()).toEqual(Object.values(errorMessages).map((value) => value[0]));
 });
 
 test('this clear one or all error fields', () => {
-    const errorMessages: { [key: string]: string[] } = {
-        domain: ['The domain format is invalid.'],
-        thanks_page: ['The thanks page format is invalid.'],
-        webhook: ['The webhook format is invalid.'],
-    };
-    const errors = new Errors();
-
-    errors.record(errorMessages);
     expect(errors.getAll()).toEqual(Object.values(errorMessages).map((value) => value[0]));
 
     errors.clear('domain');
+    expect(errors.has('domain')).toBeFalsy();
     expect(errors.has('thanks_page')).toBeTruthy();
     expect(errors.has('webhook')).toBeTruthy();
 
     errors.clear();
-    expect(errors.any()).toBe(false);
+    expect(errors.any()).toBeFalsy();
 });
