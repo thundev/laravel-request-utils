@@ -14,3 +14,21 @@ test('this can update global config', () => {
     Request.setConfig({ autoRequestCsrfCookie: true });
     expect(request.getConfig().autoRequestCsrfCookie).toBe(true);
 });
+
+test('this can set headers', () => {
+    Request.setHeader('x-header', 'test');
+    expect(Request.getInstance().getConfig().headers).toEqual({ 'x-header': 'test' });
+
+    Request.setHeader('y-header', 'test-2');
+    expect(Request.getInstance().getConfig().headers).toEqual({
+        'x-header': 'test',
+        'y-header': 'test-2',
+    });
+
+    Request.setHeader('y-header', 'test-3');
+
+    expect(Request.getInstance().getConfig().headers).toEqual({
+        'x-header': 'test',
+        'y-header': 'test-3',
+    });
+});
