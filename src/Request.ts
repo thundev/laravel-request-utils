@@ -16,6 +16,7 @@ export interface RequestConfig {
     csrfCookieUrl?: string,
     errorCallbacks?: ErrorCallback[],
     successCallbacks?: SuccessCallback[],
+    headers?: { [key: string]: string }
 }
 
 export default class Request {
@@ -30,6 +31,7 @@ export default class Request {
         csrfCookieUrl: '/sanctum/csrf-cookie',
         errorCallbacks: [],
         successCallbacks: [],
+        headers: {},
     };
 
     public static getInstance(): Request {
@@ -52,12 +54,28 @@ export default class Request {
         });
     }
 
+    public static setHeader(name: string, value: string): void {
+        const { headers } = Request.instanceConfig;
+
+        if (headers) {
+            headers[name] = value;
+        }
+
+        Request.instance = new Request(Request.instanceConfig);
+    }
+
     private constructor(config: RequestConfig = {}) {
         this.service = axios.create();
         this.config = config;
 
         this.service.defaults.withCredentials = true;
         this.service.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+        if (this.config.headers) {
+            const { headers } = this.config;
+            Object.keys(headers).forEach((key: string) => {
+                this.service.defaults.headers.common[key] = headers[key];
+            });
+        }
 
         this.service.interceptors.response.use(
             (response: AxiosResponse) => {
