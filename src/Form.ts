@@ -50,7 +50,7 @@ export default class Form {
             this[key] = data[key];
         });
 
-        this.originalData = { ...data };
+        this.originalData = JSON.parse(JSON.stringify(data));
         this.errors = new Errors();
         this.request = this.config.request ?? Request.getInstance();
 

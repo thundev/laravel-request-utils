@@ -1,9 +1,17 @@
+/* eslint-disable @typescript-eslint/indent */
 import Form, { FormMethods } from '../src/Form';
 
-test('this adds data properties', () => {
-    const data = { x: 'test', y: 'test 2' };
-    const form = new Form(data);
-    expect(form).toEqual(expect.objectContaining(data));
+describe.each([
+    ['object', { x: { field: 'x' } }],
+    ['string', { x: 'x' }],
+    ['number', { x: 1 }],
+    ['array', { x: [1, 2, 3] }],
+])('this adds data of type', (type, data) => {
+    test(type, () => {
+        const form = new Form(data);
+        expect(form)
+            .toEqual(expect.objectContaining(data));
+    });
 });
 
 test('this can add fields', () => {
@@ -64,4 +72,35 @@ test('this can reset form data', () => {
     form.reset();
     expect(form.x).toBe('x');
     expect(form.y).toBe('y');
+});
+
+describe.each([
+    ['is object', { field: 'x' }, { field: 'test' }],
+    ['is string', 'x', 'test'],
+    ['is number', 1, 2],
+    ['is array', [1, 2, 3], [4, 5, 6]],
+])('this can reset form data', (type, initialValue, newValue) => {
+    test(`when property ${type}`, () => {
+        let x;
+
+        if (['string', 'number'].includes(typeof initialValue)) {
+            x = initialValue;
+        } else if (Array.isArray(initialValue)) {
+            x = [...initialValue];
+        } else if (typeof initialValue === 'object') {
+            x = { ...initialValue };
+        }
+
+        const form = new Form({ x });
+
+        if (type === 'is object') {
+            // @ts-ignore
+            form.x.field = newValue.field;
+        } else {
+            form.x = newValue;
+        }
+
+        form.reset();
+        expect(form.x).toEqual(initialValue);
+    });
 });
