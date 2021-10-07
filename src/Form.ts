@@ -157,7 +157,7 @@ export default class Form {
     /**
      * Reset the state of the form to the original state.
      */
-    private reset(): void {
+    public reset(): void {
         Object.keys(this.originalData).forEach((field) => {
             this[field] = this.originalData[field];
         });
