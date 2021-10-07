@@ -54,3 +54,14 @@ test('this can add touched fields', () => {
     expect(form.getTouchedFields()[0]).toBe('name');
     expect(form.getTouchedFields()[1]).toBe('phone');
 });
+
+test('this can reset form data', () => {
+    const form = new Form({ x: 'x', y: 'y' });
+    form.x = 'test1';
+    form.y = 'test2';
+    expect(form.x).toBe('test1');
+    expect(form.y).toBe('test2');
+    form.reset();
+    expect(form.x).toBe('x');
+    expect(form.y).toBe('y');
+});
