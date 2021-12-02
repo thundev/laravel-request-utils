@@ -20,6 +20,13 @@ test('this can add fields', () => {
     expect(form.test).toBe('test');
 });
 
+test('this can remove fields', () => {
+    const form = new Form({ x: 'test', y: 'test2' });
+    form.removeField('x');
+    expect(form.x).toBeUndefined();
+    expect(form.y).toBe('test2');
+});
+
 describe.each([
     [true, false, 'removes'],
     [false, true, 'keeps'],

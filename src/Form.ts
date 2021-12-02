@@ -67,6 +67,16 @@ export default class Form {
         this[field] = value;
     }
 
+    public removeField(field: string): void {
+        if (typeof this.originalData[field] !== 'undefined') {
+            delete this.originalData[field];
+        }
+
+        if (typeof this[field] !== 'undefined') {
+            delete this[field];
+        }
+    }
+
     public setUrl(url: string): Form {
         this.config.url = url;
         return this;
