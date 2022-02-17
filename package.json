@@ -41,7 +41,8 @@
   },
   "dependencies": {
     "@types/lodash.isobject": "^3.0.6",
-    "axios": "^0.21.1",
-    "lodash.isobject": "^3.0.2"
+    "axios": "^0.26.0",
+    "lodash.isobject": "^3.0.2",
+    "axios-mock-adapter": "^1.20.0"
   }
 }
