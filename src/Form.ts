@@ -93,7 +93,7 @@ export default class Form {
     /**
      * Serialize the Form.
      */
-    public serialize(asString: boolean = true): string|object {
+    public serialize(asString: boolean = true): string | object {
         const json: { [key: string]: any } = {};
 
         Object.keys(this.originalData).forEach((field: string) => {
@@ -131,7 +131,12 @@ export default class Form {
         Object.keys(this.originalData).forEach((field) => {
             const value = this[field];
 
-            if (value === null && this.config.removeNullValues) {
+            if (value === null) {
+                if (this.config.removeNullValues) {
+                    return;
+                }
+
+                formData.append(field, '');
                 return;
             }
 
