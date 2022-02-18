@@ -35,6 +35,10 @@ describe.each([
         const form = new Form({ x: null, y: 'test' }, { removeNullValues });
         const formData = form.getFormData();
         expect(formData.has('x')).toBe(expected);
+        if (expected) {
+            expect(formData.get('x')).toEqual('');
+        }
+        expect(formData.has('x')).toBe(expected);
         expect(formData.has('y')).toBeTruthy();
     });
 });

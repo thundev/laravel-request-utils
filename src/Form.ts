@@ -131,7 +131,12 @@ export default class Form {
         Object.keys(this.originalData).forEach((field) => {
             const value = this[field];
 
-            if (value === null && this.config.removeNullValues) {
+            if (value === null) {
+                if (this.config.removeNullValues) {
+                    return;
+                }
+
+                formData.append(field, '');
                 return;
             }
 
