@@ -33,7 +33,7 @@ export default class Errors {
     /**
      * Retrieve the error message for a field.
      */
-    get(field: string): string|null {
+    get(field: string): string | null {
         return this.has(field) ? this.errors[field][0] : null;
     }
 
@@ -54,7 +54,7 @@ export default class Errors {
     /**
      * Clear one or all error fields.
      */
-    clear(field: string|null = null): void {
+    clear(field: string | null = null): void {
         if (field) {
             Object.keys(this.errors).forEach((key: string) => {
                 if (key.match(field)) {

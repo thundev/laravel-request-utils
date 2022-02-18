@@ -93,7 +93,7 @@ export default class Form {
     /**
      * Serialize the Form.
      */
-    public serialize(asString: boolean = true): string|object {
+    public serialize(asString: boolean = true): string | object {
         const json: { [key: string]: any } = {};
 
         Object.keys(this.originalData).forEach((field: string) => {
