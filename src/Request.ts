@@ -3,12 +3,19 @@ import axios, {
 } from 'axios';
 
 export interface ErrorCallback {
-    errorCode: number|number[],
+    errorCode: number | number[] | null,
     callback: { (error: AxiosError): void }
 }
 
 export interface SuccessCallback {
     (response: AxiosResponse): void
+}
+
+export interface MockConfig {
+    matcher: string,
+    requestBody: { [key: string]: any },
+    statusCode: number,
+    responseBody: { [key: string]: any },
 }
 
 export interface RequestConfig {
@@ -35,6 +42,20 @@ export default class Request {
         headers: {},
         withCredentials: true,
     };
+
+    public static mock(configs: MockConfig[]): Request {
+        const { service } = Request.getInstance();
+        // eslint-disable-next-line global-require
+        const MockAdapter = require('axios-mock-adapter');
+        const mock = new MockAdapter(service);
+
+        configs.forEach((config) => {
+            mock.onAny(config.matcher, config.requestBody)
+                .reply(config.statusCode, config.responseBody);
+        });
+
+        return Request.getInstance();
+    }
 
     public static getInstance(): Request {
         if (!Request.instance) {
@@ -107,6 +128,9 @@ export default class Request {
 
                     this.config.errorCallbacks
                         ?.find((callback) => {
+                            if (callback.errorCode === null) {
+                                return true;
+                            }
                             let callbackErrorCode = callback.errorCode;
                             if (!Array.isArray(callbackErrorCode)) {
                                 callbackErrorCode = [callbackErrorCode];

@@ -32,3 +32,30 @@ test('this can set headers', () => {
         'y-header': 'test-3',
     });
 });
+
+test('this can call error callbacks', () => {
+    let testPassed = false;
+
+    Request.setConfig({
+        errorCallbacks: [
+            {
+                errorCode: null,
+                callback: () => {
+                    testPassed = true;
+                },
+            },
+        ],
+    });
+
+    Request.mock([{
+        matcher: '/users',
+        requestBody: { test: 'test' },
+        statusCode: 404,
+        responseBody: { error: 'error' },
+    }])
+        .get('/users')
+        .catch(() => {})
+        .finally(() => {
+            expect(testPassed).toBeTruthy();
+        });
+});
