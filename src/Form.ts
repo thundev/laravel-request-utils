@@ -1,5 +1,5 @@
-import isObject from 'lodash.isobject/index';
 import { AxiosError, AxiosResponse } from 'axios';
+import Flattener from 'object-flattener/dist/flattener';
 import Errors from './Errors';
 import Request from './Request';
 
@@ -128,15 +128,22 @@ export default class Form {
     public getFormData(): FormData {
         const formData = new FormData();
 
+        const data: { [key: string]: any } = {};
         Object.keys(this.originalData).forEach((field) => {
-            const value = this[field];
+            data[field] = this[field];
+        });
+
+        const flattened = Flattener.flattenToArray(data);
+
+        Object.keys(flattened).forEach((key: string) => {
+            const value = flattened[key];
 
             if (value === null) {
                 if (this.config.removeNullValues) {
                     return;
                 }
 
-                formData.append(field, '');
+                formData.append(key, '');
                 return;
             }
 
@@ -149,21 +156,11 @@ export default class Form {
             }
 
             if (typeof value === 'boolean') {
-                formData.append(field, Number(value).toString());
+                formData.append(key, Number(value).toString());
                 return;
             }
 
-            if (Array.isArray(value)) {
-                this.addArray(field, value, formData);
-                return;
-            }
-
-            if (isObject(value) && !(value instanceof File)) {
-                this.addObject(field, value, formData);
-                return;
-            }
-
-            formData.append(field, value);
+            formData.append(key, value);
         });
 
         return formData;
@@ -175,28 +172,6 @@ export default class Form {
     public reset(): void {
         Object.keys(this.originalData).forEach((field) => {
             this[field] = this.originalData[field];
-        });
-    }
-
-    private addArray(field: string, array: any[], formData: FormData) {
-        if (array.length === 0 && this.config.removeNullValues) {
-            return;
-        }
-
-        array.forEach((item) => {
-            formData.append(`${field}[]`, item);
-        });
-    }
-
-    private addObject(field: string, object: { [key: string]: any }, formData: FormData) {
-        const keys = Object.keys(object);
-
-        if (keys.length === 0 && this.config.removeNullValues) {
-            return;
-        }
-
-        keys.forEach((key) => {
-            formData.append(`${field}[${key}]`, object[key]);
         });
     }
 
