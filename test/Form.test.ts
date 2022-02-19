@@ -6,6 +6,7 @@ describe.each([
     ['string', { x: 'x' }],
     ['number', { x: 1 }],
     ['array', { x: [1, 2, 3] }],
+    ['file', { x: new File([''], 'filename') }],
 ])('this adds data of type', (type, data) => {
     test(type, () => {
         const form = new Form(data);
