@@ -59,3 +59,46 @@ test('this can call error callbacks', () => {
             expect(testPassed).toBeTruthy();
         });
 });
+
+test('this can retry request', () => {
+    let testPassed = false;
+
+    Request.setConfig({
+        interceptors: [
+            (response, instance, axios, attempt) => {
+                if (response.status !== 401 || attempt > 0) {
+                    return;
+                }
+
+                const { config } = response;
+                config.url = '/success';
+
+                axios
+                    .request(config)
+                    .then((res) => {
+                        testPassed = res.data.success;
+                    });
+            },
+        ],
+    });
+
+    Request.mock([
+        {
+            matcher: '/success',
+            requestBody: { test: 'test' },
+            statusCode: 200,
+            responseBody: { success: true },
+        },
+        {
+            matcher: '/error',
+            requestBody: { test: 'test' },
+            statusCode: 401,
+            responseBody: { success: false },
+        },
+    ])
+        .get('/error')
+        .catch(() => {})
+        .finally(() => {
+            expect(testPassed).toEqual(true);
+        });
+});

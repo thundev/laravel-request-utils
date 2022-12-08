@@ -7,6 +7,13 @@ export interface ErrorCallback {
     callback: { (error: AxiosError): void }
 }
 
+export type Interceptor = (
+    response: AxiosResponse,
+    instance: Request,
+    service: AxiosInstance,
+    attempt: number,
+) => void;
+
 export interface SuccessCallback {
     (response: AxiosResponse): void
 }
@@ -23,22 +30,26 @@ export interface RequestConfig {
     csrfCookieUrl?: string,
     errorCallbacks?: ErrorCallback[],
     successCallbacks?: SuccessCallback[],
+    interceptors?: Interceptor[],
     headers?: { [key: string]: string },
     withCredentials?: boolean
 }
 
 export default class Request {
-    private service: AxiosInstance;
+    private readonly service: AxiosInstance;
 
     private readonly config: RequestConfig;
 
     private static instance: Request;
+
+    private interceptorAttempts: { [key: number]: number };
 
     private static instanceConfig: RequestConfig = {
         autoRequestCsrfCookie: true,
         csrfCookieUrl: '/sanctum/csrf-cookie',
         errorCallbacks: [],
         successCallbacks: [],
+        interceptors: [],
         headers: {},
         withCredentials: true,
     };
@@ -88,6 +99,7 @@ export default class Request {
     }
 
     private constructor(config: RequestConfig = {}) {
+        this.interceptorAttempts = [];
         this.service = axios.create();
         this.config = config;
 
@@ -107,39 +119,57 @@ export default class Request {
                         callback(response);
                     });
 
+                this.interceptorAttempts = [];
+
                 return response;
             },
             (error: AxiosError) => {
                 // 419 error means that the CSRF token has timed out
                 // in that case if the config autoRequestCsrfCookie is set to 'true',
                 // we try to receive new token and retry the request.
-                if (error.response) {
-                    const responseStatusCode = error.response.status;
-                    if (
-                        responseStatusCode === 419
+                if (!error.response) {
+                    return Promise.reject(error);
+                }
+
+                const responseStatusCode = error.response.status;
+
+                if (
+                    responseStatusCode === 419
                         && this.config.autoRequestCsrfCookie
                         && typeof this.config.csrfCookieUrl !== 'undefined'
-                    ) {
-                        this.get(this.config.csrfCookieUrl)
-                            .then(() => {
-                                this.service.request(error.config);
-                            });
-                    }
-
-                    this.config.errorCallbacks
-                        ?.find((callback) => {
-                            if (callback.errorCode === null) {
-                                return true;
-                            }
-                            let callbackErrorCode = callback.errorCode;
-                            if (!Array.isArray(callbackErrorCode)) {
-                                callbackErrorCode = [callbackErrorCode];
-                            }
-
-                            return callbackErrorCode.includes(responseStatusCode);
-                        })
-                        ?.callback(error);
+                ) {
+                    this.get(this.config.csrfCookieUrl)
+                        .then(() => {
+                            this.service.request(error.config);
+                        });
                 }
+
+                this.config.interceptors?.forEach((interceptor: Interceptor, index: number) => {
+                    this.interceptorAttempts[index] = typeof this.interceptorAttempts[index] !== 'undefined'
+                        ? this.interceptorAttempts[index] + 1
+                        : 0;
+
+                    interceptor(
+                        error.response as AxiosResponse,
+                        Request.getInstance(),
+                        this.service,
+                        this.interceptorAttempts[index],
+                    );
+                });
+
+                this.config.errorCallbacks
+                    ?.find((callback) => {
+                        if (callback.errorCode === null) {
+                            return true;
+                        }
+                        let callbackErrorCode = callback.errorCode;
+                        if (!Array.isArray(callbackErrorCode)) {
+                            callbackErrorCode = [callbackErrorCode];
+                        }
+
+                        return callbackErrorCode.includes(responseStatusCode);
+                    })
+                    ?.callback(error);
 
                 return Promise.reject(error);
             },
