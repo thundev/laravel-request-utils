@@ -5,5 +5,8 @@
   "testRegex": "(./tests/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
   "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
   "verbose": true,
-  "silent": false
+  "silent": false,
+  "moduleNameMapper": {
+    "axios": "axios/dist/node/axios.cjs"
+  }
 }

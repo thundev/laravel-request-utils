@@ -199,10 +199,20 @@ export default class Form {
                     return resolve(response.data);
                 })
                 .catch((error: AxiosError) => {
-                    if (typeof error.response?.data.errors !== 'undefined') {
-                        this.errors.record(error.response.data.errors);
+                    if (typeof error.response === 'undefined') {
+                        return reject(error);
                     }
-                    return reject(error.response?.data);
+
+                    // eslint-disable-next-line @typescript-eslint/no-shadow
+                    const data = error.response?.data;
+
+                    // @ts-ignore
+                    if (typeof data.errors !== 'undefined') {
+                        // @ts-ignore
+                        this.errors.record(data.errors);
+                    }
+
+                    return reject(data);
                 });
         });
     }

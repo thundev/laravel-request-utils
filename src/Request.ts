@@ -1,39 +1,7 @@
-import axios, {
+import Axios, {
     AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse,
 } from 'axios';
-
-export interface ErrorCallback {
-    errorCode: number | number[] | null,
-    callback: { (error: AxiosError): void }
-}
-
-export type Interceptor = (
-    response: AxiosResponse,
-    instance: Request,
-    service: AxiosInstance,
-    attempt: number,
-) => void;
-
-export interface SuccessCallback {
-    (response: AxiosResponse): void
-}
-
-export interface MockConfig {
-    matcher: string,
-    requestBody: { [key: string]: any },
-    statusCode: number,
-    responseBody: { [key: string]: any },
-}
-
-export interface RequestConfig {
-    autoRequestCsrfCookie?: boolean,
-    csrfCookieUrl?: string,
-    errorCallbacks?: ErrorCallback[],
-    successCallbacks?: SuccessCallback[],
-    interceptors?: Interceptor[],
-    headers?: { [key: string]: string },
-    withCredentials?: boolean
-}
+import { RequestConfig } from './types/RequestConfig';
 
 export default class Request {
     private readonly service: AxiosInstance;
@@ -42,31 +10,14 @@ export default class Request {
 
     private static instance: Request;
 
-    private interceptorAttempts: { [key: number]: number };
+    private interceptorAttempts: number = 0;
 
     private static instanceConfig: RequestConfig = {
-        autoRequestCsrfCookie: true,
-        csrfCookieUrl: '/sanctum/csrf-cookie',
         errorCallbacks: [],
         successCallbacks: [],
-        interceptors: [],
         headers: {},
         withCredentials: true,
     };
-
-    public static mock(configs: MockConfig[]): Request {
-        const { service } = Request.getInstance();
-        // eslint-disable-next-line global-require
-        const MockAdapter = require('axios-mock-adapter');
-        const mock = new MockAdapter(service);
-
-        configs.forEach((config) => {
-            mock.onAny(config.matcher, config.requestBody)
-                .reply(config.statusCode, config.responseBody);
-        });
-
-        return Request.getInstance();
-    }
 
     public static getInstance(): Request {
         if (!Request.instance) {
@@ -78,33 +29,28 @@ export default class Request {
 
     public static setConfig(config: RequestConfig): void {
         Object.keys(config).forEach((key: string) => {
-            if (
-                Object.prototype.hasOwnProperty.call(Request.instanceConfig, key)
-                && Object.prototype.hasOwnProperty.call(config, key)
-            ) {
-                // @ts-ignore
-                Request.instanceConfig[key] = config[key];
-            }
+            // @ts-ignore
+            Request.instanceConfig[key] = config[key];
         });
     }
 
     public static setHeader(name: string, value: string): void {
-        const { headers } = Request.instanceConfig;
+        const config = Request.getInstance().getConfig();
 
-        if (headers) {
-            headers[name] = value;
+        if (config.headers) {
+            config.headers[name] = value;
         }
 
-        Request.instance = new Request(Request.instanceConfig);
+        Request.instance = new Request(config);
     }
 
     private constructor(config: RequestConfig = {}) {
-        this.interceptorAttempts = [];
-        this.service = axios.create();
+        this.service = Axios.create();
         this.config = config;
 
         this.service.defaults.withCredentials = this.config.withCredentials;
         this.service.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+
         if (this.config.headers) {
             const { headers } = this.config;
             Object.keys(headers).forEach((key: string) => {
@@ -119,43 +65,30 @@ export default class Request {
                         callback(response);
                     });
 
-                this.interceptorAttempts = [];
+                this.interceptorAttempts = 0;
 
                 return response;
             },
             (error: AxiosError) => {
-                // 419 error means that the CSRF token has timed out
-                // in that case if the config autoRequestCsrfCookie is set to 'true',
-                // we try to receive new token and retry the request.
                 if (!error.response) {
                     return Promise.reject(error);
                 }
 
                 const responseStatusCode = error.response.status;
 
-                if (
-                    responseStatusCode === 419
-                        && this.config.autoRequestCsrfCookie
-                        && typeof this.config.csrfCookieUrl !== 'undefined'
-                ) {
-                    this.get(this.config.csrfCookieUrl)
-                        .then(() => {
-                            this.service.request(error.config);
-                        });
-                }
-
-                this.config.interceptors?.forEach((interceptor: Interceptor, index: number) => {
-                    this.interceptorAttempts[index] = typeof this.interceptorAttempts[index] !== 'undefined'
-                        ? this.interceptorAttempts[index] + 1
-                        : 0;
-
-                    interceptor(
+                if (this.config.interceptor) {
+                    const interceptorResult = this.config.interceptor(
                         error.response as AxiosResponse,
-                        Request.getInstance(),
                         this.service,
-                        this.interceptorAttempts[index],
+                        this.interceptorAttempts,
                     );
-                });
+
+                    this.interceptorAttempts += 1;
+
+                    if (interceptorResult !== false) {
+                        return interceptorResult;
+                    }
+                }
 
                 this.config.errorCallbacks
                     ?.find((callback) => {
